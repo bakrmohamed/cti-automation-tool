@@ -18,6 +18,21 @@ A lightweight automation script designed for Security Operations Center (SOC) an
 ## Installation & Usage
 
 1. Clone the repository or download the script:
-   ```bash
-   git clone [https://github.com/bakrmohamed/cti-automation-tool.git](https://github.com/bakrmohamed/cti-automation-tool.git)
+   git clone https://github.com/bakrmohamed/cti-automation-tool.git
    cd cti-automation-tool
+
+2. Install the required dependencies:
+   pip install requests
+
+3. Run the tool:
+   python main.py
+   (On the first run, the tool will interactively ask for your AbuseIPDB API key and the list of IPs to check).
+
+## Output
+
+The tool generates a `security_report.csv` file containing:
+- IP Address
+- Abuse Confidence Score
+- Country Code
+- Usage Type
+- Final Verdict (Safe / Review / Invalid / Error)
