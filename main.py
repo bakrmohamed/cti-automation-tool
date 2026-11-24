@@ -5,15 +5,25 @@ import ipaddress
 from pathlib import Path
 import requests
 
+def reputation_verdict(score):
+    """A low reputation score is not proof that an address is safe."""
+    if isinstance(score, bool) or not isinstance(score, (int, float)):
+        return "Unknown"
+    if not 0 <= score <= 100:
+        return "Unknown"
+    return "Review" if score > THRESHOLD else "Low reported abuse"
+
+
 BASE_DIR = Path(__file__).resolve().parent
 ENDPOINT = "https://api.abuseipdb.com/api/v2/check"
 THRESHOLD = 50
 
 def check_setup():
     env_path = BASE_DIR / ".env"
-    if not env_path.exists():
+    if not env_path.exists() and not os.environ.get("ABUSEIPDB_API_KEY"):
         print("[*] .env file not found. Let's create one.")
-        api_key = input("Enter your AbuseIPDB API key: ").strip()
+        from getpass import getpass
+        api_key = getpass("Enter your AbuseIPDB API key (hidden): ").strip()
         with env_path.open("w", encoding="utf-8") as f:
             f.write(f"ABUSEIPDB_API_KEY={api_key}\n")
         print("[+] Saved .env successfully.")
@@ -50,7 +60,7 @@ def check_ip(ip, api_key):
                 data = res.json().get("data", {})
                 return {
                     "IP": ip,
-                    "Abuse_Score": data.get("abuseConfidenceScore", 0),
+                    "Abuse_Score": data.get("abuseConfidenceScore"),
                     "Country": data.get("countryCode", "NA"),
                     "Usage_Type": data.get("usageType", "Unknown")
                 }
@@ -71,7 +81,7 @@ def main():
     check_setup()
     
     config = load_env()
-    api_key = config.get("ABUSEIPDB_API_KEY", "")
+    api_key = os.environ.get("ABUSEIPDB_API_KEY") or config.get("ABUSEIPDB_API_KEY", "")
     if not api_key:
         print("[x] API key is missing.")
         return
@@ -98,7 +108,7 @@ def main():
 
         info = check_ip(ip, api_key)
         if info:
-            info["Verdict"] = "Review" if info["Abuse_Score"] > THRESHOLD else "Safe"
+            info["Verdict"] = reputation_verdict(info["Abuse_Score"])
             results.append(info)
         else:
             results.append({"IP": ip, "Verdict": "Error", "Error": "API request failed"})
